@@ -1,7 +1,13 @@
-"""StudyLens - RAG Study Assistant (v4).
+"""StudyLens - RAG Study Assistant (v5, sidebar layout).
 
-New in v4: better landing page, try-a-sample-PDF button, chat-style Q&A
-with history, loading animation, and download study pack as PDF.
+Layout (from Sajeeb's diagram):
+  Sidebar (~320px): logo, Document Ingestion, Active Document Stats,
+    Workspace Controls (Download Revision Pack, Clear & Start Fresh),
+    Privacy Shield.
+  Main workspace: top banner (active deck + pages indexed), stats cards,
+    mode buttons [Flashcards | Ask PDF | Summary | Quiz],
+    then the active mode: flashcards with Prev / Flip / Next,
+    chat-style Ask, Summary, or Quiz + Practice.
 Run: streamlit run app.py
 """
 import os
@@ -26,273 +32,295 @@ st.set_page_config(
     page_title="StudyLens — RAG Study Assistant",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
-MODERN_CSS = """
+CSS = """
 <style>
 .stApp { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
-.block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 980px; }
-.hero {
+.block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1100px; }
+/* Sidebar */
+section[data-testid="stSidebar"] { width: 320px !important; }
+section[data-testid="stSidebar"] > div { background: #0f172a; }
+section[data-testid="stSidebar"] .stMarkdown, section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color: #e2e8f0 !important; }
+.side-title { font-size: 1.4rem; font-weight: 800; color: #fff; }
+.side-sub { color: #94a3b8; font-size: .88rem; margin-bottom: 12px; }
+.side-head { font-size: .8rem; font-weight: 800; letter-spacing: .08em; color: #a5b4fc; margin: 18px 0 8px 0; }
+.side-stat { font-size: .9rem; color: #cbd5e1; line-height: 1.7; }
+.privacy {
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 12px 14px; font-size: .85rem; color: #cbd5e1; margin-top: 18px;
+}
+/* Banner */
+.banner {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #ec4899 100%);
-    border-radius: 20px; padding: 28px 32px; color: white;
-    box-shadow: 0 12px 32px rgba(99,102,241,.35); margin-bottom: 8px;
+    border-radius: 16px; padding: 20px 24px; color: white;
+    box-shadow: 0 10px 28px rgba(99,102,241,.35); margin-bottom: 16px;
 }
-.hero h1 { font-size: 2.2rem; margin: 0; color: white; letter-spacing: -.02em; }
-.hero p { font-size: 1.05rem; opacity: .92; margin: 8px 0 0 0; }
-.hero .badge {
-    display: inline-block; background: rgba(255,255,255,.22);
-    border: 1px solid rgba(255,255,255,.35); border-radius: 999px;
-    padding: 4px 12px; font-size: .8rem; font-weight: 600; margin-bottom: 10px;
-}
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px 0; }
-.chip {
-    background: #eef2ff; color: #4338ca; border: 1px solid #e0e7ff;
-    border-radius: 999px; padding: 6px 14px; font-size: .85rem; font-weight: 600;
-}
-@media (prefers-color-scheme: dark) {
-    .chip { background: #1e1b4b; color: #c7d2fe; border-color: #3730a3; }
-}
-.card {
-    background: #1e293b; color: #f1f5f9;
-    border: 1px solid #334155; border-radius: 16px;
-    padding: 20px 22px; margin: 12px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,.25);
-}
-.card h3, .card h2 { margin-top: 0; color: #ffffff; }
+.banner .kicker { font-size: .78rem; font-weight: 700; letter-spacing: .1em; opacity: .95; }
+.banner h1 { font-size: 1.5rem; margin: 6px 0 0 0; color: white; }
+/* Cards */
+.card { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 16px; padding: 20px 22px; margin: 12px 0; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.card h3 { margin-top: 0; color: #fff; }
 .card p, .card div { color: #e2e8f0; }
-.card b, .card strong { color: #ffffff; }
-.example-card { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 16px; padding: 18px; height: 100%; }
-.example-card h3 { color: #fff; margin: 0 0 6px 0; font-size: 1.05rem; }
-.example-card p { color: #cbd5e1; font-size: .92rem; margin: 0; }
-.example-card .ex { background: #0f172a; border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: .88rem; color: #e2e8f0; }
-.answer-card {
-    background: linear-gradient(180deg, #eef2ff, #f5f3ff);
-    border: 1px solid #ddd6fe; border-radius: 16px; padding: 20px 22px;
-    margin: 12px 0; color: #1e1b4b;
-}
-.answer-card h3, .answer-card p { color: #1e1b4b; }
-.source-card {
-    background: #1e293b; color: #e2e8f0;
-    border: 1px solid #334155; border-left: 4px solid #818cf8;
-    border-radius: 12px; padding: 14px 16px; margin: 10px 0;
-}
-.source-card .meta { font-size: .82rem; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
-.stat { text-align: center; padding: 14px 8px; }
-.stat .num { font-size: 1.6rem; font-weight: 800; color: #a5b4fc; }
+.stat { text-align: center; padding: 16px 8px; }
+.stat .num { font-size: 1.8rem; font-weight: 800; color: #a5b4fc; }
 .stat .lbl { font-size: .85rem; font-weight: 600; color: #cbd5e1; }
-.stButton > button {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white; border: none; border-radius: 999px;
-    padding: .55rem 1.4rem; font-weight: 700;
-    box-shadow: 0 6px 16px rgba(99,102,241,.35);
+.flashcard {
+    background: #1e293b; border: 1px solid #334155; border-left: 5px solid #818cf8;
+    border-radius: 16px; padding: 26px 28px; margin: 14px 0; min-height: 180px;
 }
+.flashcard .topic { font-size: .8rem; font-weight: 800; letter-spacing: .08em; color: #a5b4fc; }
+.flashcard .q { font-size: 1.25rem; font-weight: 700; color: #fff; margin: 10px 0; }
+.flashcard .a { font-size: 1.05rem; color: #e2e8f0; margin-top: 12px; border-top: 1px solid #334155; padding-top: 12px; }
+.answer-card { background: linear-gradient(180deg, #eef2ff, #f5f3ff); border: 1px solid #ddd6fe; border-radius: 16px; padding: 20px 22px; margin: 12px 0; color: #1e1b4b; }
+.answer-card p { color: #1e1b4b; }
+.source-card { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-left: 4px solid #818cf8; border-radius: 12px; padding: 14px 16px; margin: 10px 0; }
+.source-card .meta { font-size: .82rem; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
+.stButton > button { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 999px; padding: .55rem 1.2rem; font-weight: 700; box-shadow: 0 6px 16px rgba(99,102,241,.35); }
 .stButton > button:hover { filter: brightness(1.08); color: white; }
-.stTextInput input { border-radius: 12px !important; }
-section[data-testid="stFileUploader"] {
-    border: 2px dashed #a5b4fc; border-radius: 16px; padding: 18px;
-    background: rgba(99,102,241,.05);
-}
-button[data-baseweb="tab"] { font-weight: 700; font-size: .95rem; }
+section[data-testid="stFileUploader"] { border: 2px dashed #a5b4fc; border-radius: 16px; padding: 14px; background: rgba(99,102,241,.08); }
 </style>
 """
-
-st.markdown(MODERN_CSS, unsafe_allow_html=True)
+st.markdown(CSS, unsafe_allow_html=True)
 
 # ---- Session state ----
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # list of (role, text, sources)
-if "use_sample" not in st.session_state:
-    st.session_state.use_sample = False
+for k, v in {
+    "chat_history": [], "mode": "flashcards", "flash_idx": 0,
+    "flash_flipped": False, "doc": None, "use_sample": False,
+}.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
-# ---- Hero ----
-st.markdown(
-    """
-    <div class="hero">
-        <span class="badge">✦ RAG • GROUNDED IN YOUR PDF • FREE</span>
-        <h1>🔍 StudyLens</h1>
-        <p>Upload your notes. Ask, summarise, quiz yourself — every answer comes
-        from your document, with the source shown.</p>
-    </div>
-    <div class="chips">
-        <span class="chip">💬 Ask from PDF</span>
-        <span class="chip">📝 Summarise</span>
-        <span class="chip">✅ MCQ Quiz</span>
-        <span class="chip">🎯 Practice Questions</span>
-        <span class="chip">🗂️ Flashcards</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
-# ---- Upload / sample ----
-col_up, col_sample = st.columns([3, 1])
-with col_up:
-    uploaded = st.file_uploader("Upload your notes as a PDF", type=["pdf"])
-with col_sample:
-    st.write("")  # align with uploader
-    if st.button("✨ Try a sample PDF", key="sample_btn"):
-        st.session_state.use_sample = True
-
-pdf_source = None
-pdf_name = None
-if uploaded is not None:
-    pdf_source = uploaded
-    pdf_name = uploaded.name
-    st.session_state.use_sample = False
-elif st.session_state.use_sample and os.path.exists(SAMPLE_PDF):
-    pdf_source = open(SAMPLE_PDF, "rb")
-    pdf_name = "Software-Engineering-Answers.pdf (sample)"
-
-if pdf_source is not None:
+def load_doc(pdf_file, name):
     with st.spinner("📖 Reading your PDF..."):
-        reader = PdfReader(pdf_source)
+        reader = PdfReader(pdf_file)
         pages = []
         for i, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
             if text.strip():
                 pages.append((i, text))
-
     if not pages:
-        st.warning("No readable text was found in this PDF. Try a text-based PDF, not a scanned image.")
-    else:
-        with st.spinner("🔍 Building your study index..."):
-            chunks = split_by_topic(pages)
-            retriever = Retriever(chunks)
-        topics = sorted({c.get("topic", "") for c in chunks if c.get("topic")})
+        return None
+    with st.spinner("🔍 Building your study index..."):
+        chunks = split_by_topic(pages)
+        retriever = Retriever(chunks)
+    topics = sorted({c.get("topic", "") for c in chunks if c.get("topic")})
+    return {"name": name, "pages": pages, "chunks": chunks,
+            "retriever": retriever, "topics": topics}
 
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f'<div class="card stat"><div class="num">{len(pages)}</div><div class="lbl">Pages</div></div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div class="card stat"><div class="num">{len(chunks)}</div><div class="lbl">Topic chunks</div></div>', unsafe_allow_html=True)
-        with c3:
-            st.markdown(f'<div class="card stat"><div class="num">{len(topics)}</div><div class="lbl">Topics</div></div>', unsafe_allow_html=True)
-        st.success(f"✅ Loaded **{pdf_name}** — {len(pages)} page(s) with readable text.")
 
-        # Download study pack
-        if st.button("⬇️ Download study pack (PDF)", key="download_pack"):
-            with st.spinner("📦 Building your study pack..."):
-                pdf_bytes = build_study_pack_pdf(chunks)
-            st.download_button(
-                "📥 Click here to download StudyLens-Study-Pack.pdf",
-                data=pdf_bytes,
-                file_name="StudyLens-Study-Pack.pdf",
-                mime="application/pdf",
-                key="download_pack_btn",
-            )
+def clear_all():
+    st.session_state.doc = None
+    st.session_state.chat_history = []
+    st.session_state.flash_idx = 0
+    st.session_state.flash_flipped = False
+    st.session_state.mode = "flashcards"
+    st.session_state.use_sample = False
 
-        tab_ask, tab_summary, tab_quiz, tab_practice, tab_cards = st.tabs(
-            ["💬 Ask", "📝 Summarise", "✅ Quiz", "🎯 Practice", "🗂️ Flashcards"]
+
+# ================= SIDEBAR =================
+with st.sidebar:
+    st.markdown('<div class="side-title">🔍 StudyLens v1.0</div><div class="side-sub">Grounded RAG Assistant</div>', unsafe_allow_html=True)
+    st.markdown('<div class="side-head">📂 DOCUMENT INGESTION</div>', unsafe_allow_html=True)
+    uploaded = st.file_uploader("Drag & drop PDF notes here", type=["pdf"])
+    if st.button("✨ Load Sample", key="sample_btn"):
+        st.session_state.use_sample = True
+
+    if uploaded is not None:
+        st.session_state.use_sample = False
+        doc = load_doc(uploaded, uploaded.name)
+        if doc:
+            st.session_state.doc = doc
+        else:
+            st.warning("No readable text in this PDF.")
+    elif st.session_state.use_sample and st.session_state.doc is None:
+        if os.path.exists(SAMPLE_PDF):
+            doc = load_doc(open(SAMPLE_PDF, "rb"), "Software-Engineering-Answers.pdf (sample)")
+            if doc:
+                st.session_state.doc = doc
+
+    doc = st.session_state.doc
+    st.markdown('<div class="side-head">📊 ACTIVE DOCUMENT STATS</div>', unsafe_allow_html=True)
+    if doc:
+        st.markdown(
+            f'<div class="side-stat">• File: {doc["name"]}<br>'
+            f'• Pages: {len(doc["pages"])} &nbsp;|&nbsp; Chunks: {len(doc["chunks"])}<br>'
+            f'• Topics: {len(doc["topics"])}<br>• Processing: Ready ✅</div>',
+            unsafe_allow_html=True,
         )
+    else:
+        st.markdown('<div class="side-stat">• No document loaded yet.<br>• Upload a PDF, or load the sample.</div>', unsafe_allow_html=True)
 
-        with tab_ask:
-            # Show chat history first
-            for role, text, sources in st.session_state.chat_history:
-                with st.chat_message(role):
-                    st.write(text)
-                    if sources:
-                        for s in sources:
-                            st.caption(f"📄 Page {s['page']} • {s.get('topic', '')} • score {s['score']:.2f}")
-            question = st.chat_input("Ask a question about this PDF… e.g. What is cyclomatic complexity?")
-            if question:
-                st.session_state.chat_history.append(("user", question, []))
-                with st.chat_message("user"):
-                    st.write(question)
-                with st.spinner("🔍 Searching your PDF for the answer..."):
-                    retrieved = retriever.retrieve(question, top_k=3)
-                    answer = extractive_answer(question, retrieved, retriever)
-                st.session_state.chat_history.append(("assistant", answer, retrieved))
-                with st.chat_message("assistant"):
-                    st.markdown(f'<div class="answer-card"><p>{answer}</p></div>', unsafe_allow_html=True)
-                    if retrieved:
-                        st.markdown("**📚 Sources**")
-                        for r in retrieved:
-                            st.markdown(
-                                f'<div class="source-card"><div class="meta">Page {r["page"]} • {r.get("topic", "")} • score {r["score"]:.2f}</div>'
-                                f'<div>{r["text"][:600]}</div></div>',
-                                unsafe_allow_html=True,
-                            )
+    st.markdown('<div class="side-head">⚙️ WORKSPACE CONTROLS</div>', unsafe_allow_html=True)
+    if doc:
+        if st.button("⬇️ Download Revision Pack", key="dl_pack_side"):
+            with st.spinner("📦 Building your revision pack..."):
+                pdf_bytes = build_study_pack_pdf(doc["chunks"])
+            st.download_button(
+                "📥 Download StudyLens-Study-Pack.pdf",
+                data=pdf_bytes, file_name="StudyLens-Study-Pack.pdf",
+                mime="application/pdf", key="dl_pack_btn",
+            )
+    if st.button("🔄 Clear & Start Fresh", key="clear_btn"):
+        clear_all()
+        st.rerun()
+
+    st.markdown(
+        '<div class="privacy">🛡️ <b>PRIVACY SHIELD</b><br>'
+        'Processed in-memory. Zero server storage. Completely free.</div>',
+        unsafe_allow_html=True,
+    )
+
+# ================= MAIN WORKSPACE =================
+if doc:
+    short_name = doc["name"].replace(" (sample)", "").replace(".pdf", "")
+    st.markdown(
+        f'<div class="banner"><div class="kicker">✦ RAG GROUNDED • {short_name.upper()} ACTIVE • {len(doc["pages"])} PAGES INDEXED</div>'
+        f'<h1>Active Study Deck &amp; Interactive Knowledge Engine</h1></div>',
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f'<div class="card stat"><div class="num">📄 {len(doc["pages"])}</div><div class="lbl">Pages</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<div class="card stat"><div class="num">🧩 {len(doc["chunks"])}</div><div class="lbl">Chunks</div></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown(f'<div class="card stat"><div class="num">🏷️ {len(doc["topics"])}</div><div class="lbl">Topics</div></div>', unsafe_allow_html=True)
+
+    # Mode buttons
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        if st.button("🗂️ Flashcards", key="mode_cards"):
+            st.session_state.mode = "flashcards"
+    with m2:
+        if st.button("💬 Ask PDF", key="mode_ask"):
+            st.session_state.mode = "ask"
+    with m3:
+        if st.button("📝 Summary", key="mode_summary"):
+            st.session_state.mode = "summary"
+    with m4:
+        if st.button("✅ Quiz", key="mode_quiz"):
+            st.session_state.mode = "quiz"
+    st.divider()
+
+    mode = st.session_state.mode
+    chunks = doc["chunks"]
+    retriever = doc["retriever"]
+
+    if mode == "flashcards":
+        cards = make_flashcards(chunks, n=20)
+        if not cards:
+            st.write("Not enough topics found in this PDF to build flashcards.")
+        else:
+            idx = st.session_state.flash_idx % len(cards)
+            card = cards[idx]
+            st.markdown(f"### 🗂️ CARD {idx + 1} OF {len(cards)}: {card['term'].upper()}")
+            answer_html = f'<div class="a">↳ "{card["definition"]}"</div>' if st.session_state.flash_flipped else ""
+            st.markdown(
+                f'<div class="flashcard"><div class="topic">🏷️ TOPIC: {card["term"].upper()} &nbsp;&nbsp; 📍 Source: Page {card["page"]}</div>'
+                f'<div class="q">💡 What is {card["term"]}?</div>'
+                f'<div style="color:#94a3b8">Tap Flip Answer to reveal the definition.</div>{answer_html}</div>',
+                unsafe_allow_html=True,
+            )
+            b1, b2, b3 = st.columns(3)
+            with b1:
+                if st.button("◀ Prev", key="prev_card"):
+                    st.session_state.flash_idx = (idx - 1) % len(cards)
+                    st.session_state.flash_flipped = False
+                    st.rerun()
+            with b2:
+                if st.button("🔄 Flip Answer", key="flip_card"):
+                    st.session_state.flash_flipped = not st.session_state.flash_flipped
+                    st.rerun()
+            with b3:
+                if st.button("Next ▶", key="next_card"):
+                    st.session_state.flash_idx = (idx + 1) % len(cards)
+                    st.session_state.flash_flipped = False
+                    st.rerun()
+
+    elif mode == "ask":
+        for role, text, sources in st.session_state.chat_history:
+            with st.chat_message(role):
+                st.write(text)
+                if sources:
+                    for s in sources:
+                        st.caption(f"📄 Page {s['page']} • {s.get('topic', '')} • score {s['score']:.2f}")
+        question = st.chat_input("Ask a question about this PDF… e.g. What is cyclomatic complexity?")
+        if question:
+            st.session_state.chat_history.append(("user", question, []))
+            with st.chat_message("user"):
+                st.write(question)
+            with st.spinner("🔍 Searching your PDF for the answer..."):
+                retrieved = retriever.retrieve(question, top_k=3)
+                answer = extractive_answer(question, retrieved, retriever)
+            st.session_state.chat_history.append(("assistant", answer, retrieved))
+            with st.chat_message("assistant"):
+                st.markdown(f'<div class="answer-card"><p>{answer}</p></div>', unsafe_allow_html=True)
+                if retrieved:
+                    st.markdown("**📚 Sources**")
+                    for r in retrieved:
+                        st.markdown(
+                            f'<div class="source-card"><div class="meta">Page {r["page"]} • {r.get("topic", "")} • score {r["score"]:.2f}</div>'
+                            f'<div>{r["text"][:600]}</div></div>',
+                            unsafe_allow_html=True,
+                        )
+        if st.session_state.chat_history and st.button("🗑️ Clear chat", key="clear_chat"):
+            st.session_state.chat_history = []
+            st.rerun()
+
+    elif mode == "summary":
+        if st.button("✨ Summarise this PDF", key="summarise_btn"):
+            with st.spinner("📝 Writing your summary..."):
+                summary, key_points = summarise(chunks)
+            st.markdown('<div class="card"><h3>📝 Summary</h3><p>' +
+                        (summary or "Could not build a summary from this PDF.") +
+                        '</p></div>', unsafe_allow_html=True)
+            st.markdown("### 🔑 Key points")
+            for topic, point in key_points:
+                st.markdown(f'<div class="source-card"><div class="meta">{topic}</div><div>{point}</div></div>', unsafe_allow_html=True)
+
+    elif mode == "quiz":
+        with st.spinner("✅ Building your quiz..."):
+            quiz = make_mcq_quiz(chunks, n=5)
+        if not quiz:
+            st.write("Not enough definition sentences were found in this PDF to build an MCQ quiz.")
+        else:
+            for idx, q in enumerate(quiz, start=1):
+                st.markdown(f'<div class="card"><h3>Q{idx}. {q["question"]}</h3><p>Page {q["page"]}</p></div>', unsafe_allow_html=True)
+                choice = st.radio(f"Choose an answer for Q{idx}", q["options"], key=f"quiz_{idx}")
+                if st.button(f"Check Q{idx}", key=f"check_{idx}"):
+                    if choice == q["options"][q["answer_index"]]:
+                        st.success("✅ Correct!")
                     else:
-                        st.write("No matching passage found in this document.")
-            if st.session_state.chat_history and st.button("🗑️ Clear chat", key="clear_chat"):
-                st.session_state.chat_history = []
-                st.rerun()
-
-        with tab_summary:
-            if st.button("✨ Summarise this PDF", key="summarise_btn"):
-                with st.spinner("📝 Writing your summary..."):
-                    summary, key_points = summarise(chunks)
-                st.markdown('<div class="card"><h3>📝 Summary</h3><p>' +
-                            (summary or "Could not build a summary from this PDF.") +
-                            '</p></div>', unsafe_allow_html=True)
-                st.markdown("### 🔑 Key points")
-                for topic, point in key_points:
-                    st.markdown(f'<div class="source-card"><div class="meta">{topic}</div><div>{point}</div></div>', unsafe_allow_html=True)
-
-        with tab_quiz:
-            with st.spinner("✅ Building your quiz..."):
-                quiz = make_mcq_quiz(chunks, n=5)
-            if not quiz:
-                st.write("Not enough definition sentences were found in this PDF to build an MCQ quiz. Try a PDF with more 'X is ...' definitions.")
-            else:
-                for idx, q in enumerate(quiz, start=1):
-                    st.markdown(f'<div class="card"><h3>Q{idx}. {q["question"]}</h3><p>Page {q["page"]}</p></div>', unsafe_allow_html=True)
-                    choice = st.radio(f"Choose an answer for Q{idx}", q["options"], key=f"quiz_{idx}")
-                    if st.button(f"Check Q{idx}", key=f"check_{idx}"):
-                        if choice == q["options"][q["answer_index"]]:
-                            st.success("✅ Correct!")
-                        else:
-                            st.error(f"Not quite. Correct answer: {q['options'][q['answer_index']]}")
-
-        with tab_practice:
-            if st.button("🎯 Generate practice questions", key="practice_btn"):
-                with st.spinner("🎯 Writing practice questions..."):
-                    practice = make_practice_questions(chunks, n=8)
-                for q in practice:
-                    st.markdown(f'<div class="source-card"><div>{q}</div></div>', unsafe_allow_html=True)
-
-        with tab_cards:
-            cards = make_flashcards(chunks, n=8)
-            if not cards:
-                st.write("Not enough topics found in this PDF to build flashcards.")
-            else:
-                for idx, card in enumerate(cards, start=1):
-                    st.markdown(f'<div class="card"><h3>🗂️ Card {idx}: {card["term"]}</h3><p>Page {card["page"]}</p></div>', unsafe_allow_html=True)
-                    if st.button(f"Show definition — Card {idx}", key=f"card_{idx}"):
-                        st.write(card["definition"])
+                        st.error(f"Not quite. Correct answer: {q['options'][q['answer_index']]}")
+        st.markdown("### 🎯 Practice Questions")
+        if st.button("🎯 Generate practice questions", key="practice_btn"):
+            with st.spinner("🎯 Writing practice questions..."):
+                practice = make_practice_questions(chunks, n=8)
+            for q in practice:
+                st.markdown(f'<div class="source-card"><div>{q}</div></div>', unsafe_allow_html=True)
 else:
-    # ---- Better landing page ----
+    # Landing page (no document yet)
+    st.markdown(
+        '<div class="banner"><div class="kicker">✦ RAG • GROUNDED IN YOUR PDF • FREE</div>'
+        '<h1>🔍 StudyLens — Active Study Deck &amp; Interactive Knowledge Engine</h1></div>',
+        unsafe_allow_html=True,
+    )
     st.markdown("### ✨ What you can do with StudyLens")
     lc1, lc2, lc3 = st.columns(3)
     with lc1:
-        st.markdown(
-            '<div class="example-card"><h3>💬 Ask from your PDF</h3>'
-            '<p>Ask in plain English, get an answer from your notes — with the page shown.</p>'
-            '<div class="ex"><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></div></div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="card"><h3>💬 Ask from your PDF</h3><p>Ask in plain English, get an answer from your notes — with the page shown.</p><p><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></p></div>', unsafe_allow_html=True)
     with lc2:
-        st.markdown(
-            '<div class="example-card"><h3>📝 Summarise in seconds</h3>'
-            '<p>Turn a whole chapter into a short summary and key points for revision.</p>'
-            '<div class="ex"><b>Summary:</b> A structural model shows the static structure of a system…</div></div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="card"><h3>📝 Summarise in seconds</h3><p>Turn a whole chapter into a short summary and key points for revision.</p><p><b>Summary:</b> A structural model shows the static structure of a system…</p></div>', unsafe_allow_html=True)
     with lc3:
-        st.markdown(
-            '<div class="example-card"><h3>✅ Quiz yourself</h3>'
-            '<p>MCQs, practice questions and flashcards — all made from your PDF.</p>'
-            '<div class="ex"><b>Q:</b> What is a structural model?<br><b>A.</b> … <b>B.</b> … <b>C.</b> …</div></div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="card"><h3>✅ Quiz yourself</h3><p>MCQs, practice questions and flashcards — all made from your PDF.</p><p><b>Q:</b> What is a structural model?</p></div>', unsafe_allow_html=True)
     st.markdown(
-        """
-        <div class="card">
-            <h3>👋 How it works</h3>
-            <p><b>1.</b> Upload a PDF of your notes, or try the sample &nbsp;→&nbsp; <b>2.</b> Ask a question, get a summary, or take a quiz &nbsp;→&nbsp; <b>3.</b> Every answer shows its source page.</p>
-            <p>No file is stored on a server — it is processed in your session. No API key needed, free to use.</p>
-        </div>
-        """,
+        '<div class="card"><h3>👋 How it works</h3>'
+        '<p><b>1.</b> Upload a PDF in the sidebar, or load the sample &nbsp;→&nbsp; <b>2.</b> Ask a question, get a summary, or take a quiz &nbsp;→&nbsp; <b>3.</b> Every answer shows its source page.</p>'
+        '<p>No file is stored on a server — it is processed in your session. No API key needed, free to use.</p></div>',
         unsafe_allow_html=True,
     )
