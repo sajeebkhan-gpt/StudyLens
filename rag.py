@@ -291,3 +291,47 @@ def make_quiz_questions(retrieved, n=3):
         text = chunk["text"][:220].strip()
         questions.append(f"Based on page {chunk['page']}: what is the main point of this passage?\n\n\"{text}...\"")
     return questions
+
+
+def build_study_pack_pdf(chunks, filename="StudyLens-Study-Pack.pdf"):
+    """Build a downloadable study-pack PDF: summary + key points + MCQ quiz
+    (with answers) + practice questions. Returns the PDF as bytes.
+    Uses only content from the document; nothing is invented.
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    import io
+
+    summary, key_points = summarise(chunks)
+    quiz = make_mcq_quiz(chunks, n=5)
+    practice = make_practice_questions(chunks, n=8)
+    cards = make_flashcards(chunks, n=8)
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            topMargin=36, bottomMargin=36, leftMargin=36, rightMargin=36)
+    styles = getSampleStyleSheet()
+    story = []
+    story.append(Paragraph("StudyLens — Study Pack", styles["Title"]))
+    story.append(Paragraph("Summary, key points, quiz and practice questions — all from your PDF.", styles["Normal"]))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("Summary", styles["Heading1"]))
+    story.append(Paragraph(summary or "No summary could be built from this PDF.", styles["Normal"]))
+    story.append(Paragraph("Key points", styles["Heading1"]))
+    for topic, point in key_points:
+        story.append(Paragraph(f"<b>{topic}:</b> {point}", styles["Normal"]))
+    story.append(Paragraph("MCQ Quiz (answers at the end of each question)", styles["Heading1"]))
+    for i, q in enumerate(quiz, start=1):
+        story.append(Paragraph(f"Q{i}. {q['question']}", styles["Heading2"]))
+        for j, opt in enumerate(q["options"]):
+            mark = "  &lt;-- correct" if j == q["answer_index"] else ""
+            story.append(Paragraph(f"{chr(65+j)}. {opt}{mark}", styles["Normal"]))
+    story.append(Paragraph("Practice Questions", styles["Heading1"]))
+    for q in practice:
+        story.append(Paragraph(f"- {q}", styles["Normal"]))
+    story.append(Paragraph("Flashcards", styles["Heading1"]))
+    for c in cards:
+        story.append(Paragraph(f"<b>{c['term']}:</b> {c['definition']}", styles["Normal"]))
+    doc.build(story)
+    return buf.getvalue()
