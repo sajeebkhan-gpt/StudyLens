@@ -170,6 +170,15 @@ def summarise(chunks, max_points=8):
         if len(key_points) >= max_points:
             break
     summary = " ".join(s for _, s in key_points[:5])
+    if not summary.strip():
+        # Fallback for short / table-like PDFs (e.g. a 1-page exam routine):
+        # use the raw text of the first chunks, cleaned, instead of saying
+        # "could not build a summary". Never invent content.
+        raw = " ".join(c["text"] for c in chunks[:3]).strip()
+        raw = re.sub(r"\s+", " ", raw)
+        if raw:
+            summary = raw[:600] + ("..." if len(raw) > 600 else "")
+            key_points = [("Document", summary)]
     return summary, key_points
 
 

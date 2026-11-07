@@ -53,27 +53,32 @@ MODERN_CSS = """
     .chip { background: #1e1b4b; color: #c7d2fe; border-color: #3730a3; }
 }
 
-/* ---- Cards ---- */
+/* ---- Cards: dark slate, light text — readable in light AND dark mode ---- */
 .card {
-    background: var(--background-color, #ffffff);
-    border: 1px solid rgba(128,128,128,.25); border-radius: 16px;
+    background: #1e293b;
+    color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 16px;
     padding: 20px 22px; margin: 12px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
 }
-.card h3 { margin-top: 0; }
+.card h3, .card h2 { margin-top: 0; color: #ffffff; }
+.card p, .card div { color: #e2e8f0; }
+.card b, .card strong { color: #ffffff; }
 .answer-card {
     background: linear-gradient(180deg, #eef2ff, #f5f3ff);
     border: 1px solid #ddd6fe; border-radius: 16px; padding: 20px 22px;
     margin: 12px 0; color: #1e1b4b;
 }
+.answer-card h3, .answer-card p { color: #1e1b4b; }
 .source-card {
-    border: 1px solid rgba(128,128,128,.25); border-left: 4px solid #6366f1;
+    background: #1e293b; color: #e2e8f0;
+    border: 1px solid #334155; border-left: 4px solid #818cf8;
     border-radius: 12px; padding: 14px 16px; margin: 10px 0;
 }
-.source-card .meta { font-size: .82rem; font-weight: 700; color: #6366f1; margin-bottom: 6px; }
+.source-card .meta { font-size: .82rem; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
 .stat { text-align: center; padding: 14px 8px; }
-.stat .num { font-size: 1.6rem; font-weight: 800; color: #6366f1; }
-.stat .lbl { font-size: .82rem; opacity: .75; }
+.stat .num { font-size: 1.6rem; font-weight: 800; color: #a5b4fc; }
+.stat .lbl { font-size: .85rem; font-weight: 600; color: #cbd5e1; }
 
 /* ---- Buttons / inputs ---- */
 .stButton > button {
