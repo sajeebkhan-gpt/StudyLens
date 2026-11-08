@@ -1,4 +1,4 @@
-"""StudyLens - RAG Study Assistant (v6.1, glassmorphic hero).
+"""StudyLens - RAG Study Assistant (v6.2, glassmorphic hero).
 
 v6: animated glassmorphic hero banner (aurora orb, live pulse badge,
 shimmer headline), equal-height feature cards with hover lift.
@@ -99,14 +99,15 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
 .banner .subtitle { color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0; }
 .banner .kicker { font-size: .78rem; font-weight: 700; letter-spacing: .1em; color: #c4b5fd; }
 /* ---- Feature cards: equal height, hover lift ----
-   Streamlit columns do not stretch by default, so height:100% on the
-   card alone is not enough — the column wrappers must stretch too. */
-div[data-testid="stHorizontalBlock"] { align-items: stretch !important; }
-div[data-testid="stColumn"] > div:first-child { height: 100%; }
-div[data-testid="stColumn"] > div:first-child > div[data-testid="stVerticalBlock"] { height: 100%; }
+   v6.2: Streamlit columns do NOT stretch reliably, so the 3 cards are
+   rendered in ONE flexbox row (see landing section). Flexbox itself
+   stretches all children to the tallest card's height. */
+.feature-row { display: flex; gap: 16px; align-items: stretch; margin: 12px 0; }
+@media (max-width: 700px) { .feature-row { flex-direction: column; } }
 .feature-card {
+    flex: 1;
     display: flex; flex-direction: column; justify-content: space-between;
-    height: 100%; min-height: 240px;
+    height: auto; min-height: 240px;
     background: #1e293b; color: #f1f5f9; border: 1px solid #334155;
     border-radius: 16px; padding: 20px 22px; margin: 12px 0;
     box-shadow: 0 4px 16px rgba(0,0,0,.25);
@@ -381,13 +382,14 @@ else:
         unsafe_allow_html=True,
     )
     st.markdown("### ✨ What you can do with StudyLens")
-    lc1, lc2, lc3 = st.columns(3)
-    with lc1:
-        st.markdown('<div class="feature-card"><div><h3>💬 Ask from your PDF</h3><p>Ask in plain English, get an answer from your notes — with the page shown.</p></div><div class="mini-chip"><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></div></div>', unsafe_allow_html=True)
-    with lc2:
-        st.markdown('<div class="feature-card"><div><h3>📝 Summarise in seconds</h3><p>Turn a whole chapter into a short summary and key points for revision.</p></div><div class="mini-chip"><b>Summary:</b> A structural model shows the static structure of a system…</div></div>', unsafe_allow_html=True)
-    with lc3:
-        st.markdown('<div class="feature-card"><div><h3>✅ Quiz yourself</h3><p>MCQs, practice questions and flashcards — all made from your PDF.</p></div><div class="mini-chip"><b>Q:</b> What is a structural model?<br><b>A.</b> … <b>B.</b> … <b>C.</b> …</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="feature-row">'
+        '<div class="feature-card"><div><h3>💬 Ask from your PDF</h3><p>Ask in plain English, get an answer from your notes — with the page shown.</p></div><div class="mini-chip"><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></div></div>'
+        '<div class="feature-card"><div><h3>📝 Summarise in seconds</h3><p>Turn a whole chapter into a short summary and key points for revision.</p></div><div class="mini-chip"><b>Summary:</b> A structural model shows the static structure of a system…</div></div>'
+        '<div class="feature-card"><div><h3>✅ Quiz yourself</h3><p>MCQs, practice questions and flashcards — all made from your PDF.</p></div><div class="mini-chip"><b>Q:</b> What is a structural model?<br><b>A.</b> … <b>B.</b> … <b>C.</b> …</div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         '<div class="card"><h3>👋 How it works</h3>'
         '<p><b>1.</b> Upload a PDF in the sidebar, or load the sample &nbsp;→&nbsp; <b>2.</b> Ask a question, get a summary, or take a quiz &nbsp;→&nbsp; <b>3.</b> Every answer shows its source page.</p>'
