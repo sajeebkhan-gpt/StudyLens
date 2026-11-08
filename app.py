@@ -1,4 +1,4 @@
-"""StudyLens - RAG Study Assistant (v7, aurora theme).
+"""StudyLens - RAG Study Assistant (v7.1, aurora theme).
 
 v7: full-page purple/green/pink aurora background, glass hero/cards/
 sidebar with glowing purple-pink borders. Same sidebar layout and
@@ -33,6 +33,17 @@ st.set_page_config(
 CSS = """
 <style>
 .stApp { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #070510; }
+/* ---- Top header: transparent, integrated — no black strip ---- */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+header[data-testid="stHeader"] * { background: transparent !important; }
+/* Keep the toolbar icons visible and clickable */
+header[data-testid="stHeader"] button, header[data-testid="stHeader"] a { color: #e2e8f0 !important; }
+div[data-testid="stMainBlockContainer"] { padding-top: 2rem !important; }
+.main .block-container { padding-top: 2rem !important; }
 /* ---- Full-page aurora background: purple / green / pink waves ---- */
 .stApp::before {
     content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
