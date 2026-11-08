@@ -1,8 +1,8 @@
-"""StudyLens - RAG Study Assistant (v6.2, glassmorphic hero).
+"""StudyLens - RAG Study Assistant (v7, aurora theme).
 
-v6: animated glassmorphic hero banner (aurora orb, live pulse badge,
-shimmer headline), equal-height feature cards with hover lift.
-Layout: sidebar (~320px) + main workspace, per Sajeeb's diagram.
+v7: full-page purple/green/pink aurora background, glass hero/cards/
+sidebar with glowing purple-pink borders. Same sidebar layout and
+equal-height feature cards as v6.2.
 Run: streamlit run app.py
 """
 import os
@@ -32,11 +32,22 @@ st.set_page_config(
 
 CSS = """
 <style>
-.stApp { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+.stApp { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #070510; }
+/* ---- Full-page aurora background: purple / green / pink waves ---- */
+.stApp::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(600px 300px at 75% 0%, rgba(168, 85, 247, .45), transparent 70%),
+        radial-gradient(500px 260px at 90% 25%, rgba(16, 185, 129, .35), transparent 70%),
+        radial-gradient(550px 300px at 55% 10%, rgba(236, 72, 153, .35), transparent 70%),
+        radial-gradient(700px 400px at 20% 90%, rgba(99, 102, 241, .3), transparent 70%),
+        radial-gradient(400px 220px at 85% 70%, rgba(34, 211, 238, .22), transparent 70%);
+}
+.stApp > div, .block-container, section[data-testid="stSidebar"] { position: relative; z-index: 1; }
 .block-container { padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1100px; }
-/* Sidebar */
+/* Sidebar: glassy */
 section[data-testid="stSidebar"] { width: 320px !important; }
-section[data-testid="stSidebar"] > div { background: #0f172a; }
+section[data-testid="stSidebar"] > div { background: rgba(15, 12, 35, 0.75); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 section[data-testid="stSidebar"] .stMarkdown, section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color: #e2e8f0 !important; }
@@ -45,7 +56,7 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
 .side-head { font-size: .8rem; font-weight: 800; letter-spacing: .08em; color: #a5b4fc; margin: 18px 0 8px 0; }
 .side-stat { font-size: .9rem; color: #cbd5e1; line-height: 1.7; }
 .privacy {
-    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    background: rgba(30, 27, 75, 0.55); backdrop-filter: blur(12px); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px;
     padding: 12px 14px; font-size: .85rem; color: #cbd5e1; margin-top: 18px;
 }
 /* ---- Hero: animated glassmorphic banner ---- */
@@ -66,16 +77,16 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
 }
 .banner {
     position: relative; overflow: hidden;
-    background: rgba(20, 24, 43, 0.75);
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(236, 72, 153, 0.18) 45%, rgba(99, 102, 241, 0.22));
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(168, 85, 247, 0.35);
+    border: 1px solid rgba(216, 180, 254, 0.45);
     border-radius: 20px; padding: 32px 26px; color: white;
-    box-shadow: 0 12px 35px -10px rgba(139, 92, 246, 0.25);
+    box-shadow: 0 12px 40px -10px rgba(168, 85, 247, 0.45), 0 0 0 1px rgba(236, 72, 153, 0.12);
     margin-bottom: 16px;
 }
 .banner .aurora-orb {
     position: absolute; top: -60px; right: -40px; width: 280px; height: 280px;
-    background: radial-gradient(circle, rgba(168, 85, 247, .45) 0%, rgba(59, 130, 246, .25) 45%, transparent 70%);
+    background: radial-gradient(circle, rgba(236, 72, 153, .55) 0%, rgba(168, 85, 247, .4) 45%, transparent 70%);
     filter: blur(30px); animation: auroraGlow 12s ease-in-out infinite; pointer-events: none;
 }
 .banner .hero-content { position: relative; z-index: 1; }
@@ -108,17 +119,19 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
     flex: 1;
     display: flex; flex-direction: column; justify-content: space-between;
     height: auto; min-height: 240px;
-    background: #1e293b; color: #f1f5f9; border: 1px solid #334155;
+    background: linear-gradient(160deg, rgba(168, 85, 247, 0.22), rgba(30, 27, 75, 0.55) 60%, rgba(236, 72, 153, 0.14));
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: #f1f5f9; border: 1px solid rgba(192, 132, 252, 0.5);
     border-radius: 16px; padding: 20px 22px; margin: 12px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    box-shadow: 0 8px 28px rgba(168, 85, 247, .28);
     transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
 }
 .feature-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(168, 85, 247, 0.6);
-    box-shadow: 0 12px 28px rgba(139, 92, 246, .3);
+    border-color: rgba(232, 121, 249, 0.85);
+    box-shadow: 0 14px 34px rgba(168, 85, 247, .45);
 }
-.feature-card h3 { margin-top: 0; color: #fff; }
+.feature-card h3 { margin-top: 0; color: #fff; font-size: 1.05rem; }
 .feature-card p { color: #e2e8f0; }
 .mini-chip {
     background: rgba(0, 0, 0, 0.3); border-left: 3px solid #a855f7;
@@ -126,14 +139,14 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
     font-size: .9rem; color: #e2e8f0;
 }
 /* Cards */
-.card { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 16px; padding: 20px 22px; margin: 12px 0; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.card { background: rgba(30, 27, 75, 0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #f1f5f9; border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 16px; padding: 20px 22px; margin: 12px 0; box-shadow: 0 8px 24px rgba(139, 92, 246, .22); }
 .card h3 { margin-top: 0; color: #fff; }
 .card p, .card div { color: #e2e8f0; }
 .stat { text-align: center; padding: 16px 8px; }
 .stat .num { font-size: 1.8rem; font-weight: 800; color: #a5b4fc; }
 .stat .lbl { font-size: .85rem; font-weight: 600; color: #cbd5e1; }
 .flashcard {
-    background: #1e293b; border: 1px solid #334155; border-left: 5px solid #818cf8;
+    background: rgba(30, 27, 75, 0.55); backdrop-filter: blur(12px); border: 1px solid rgba(168, 85, 247, 0.4); border-left: 5px solid #c084fc;
     border-radius: 16px; padding: 26px 28px; margin: 14px 0; min-height: 180px;
 }
 .flashcard .topic { font-size: .8rem; font-weight: 800; letter-spacing: .08em; color: #a5b4fc; }
@@ -141,7 +154,7 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
 .flashcard .a { font-size: 1.05rem; color: #e2e8f0; margin-top: 12px; border-top: 1px solid #334155; padding-top: 12px; }
 .answer-card { background: linear-gradient(180deg, #eef2ff, #f5f3ff); border: 1px solid #ddd6fe; border-radius: 16px; padding: 20px 22px; margin: 12px 0; color: #1e1b4b; }
 .answer-card p { color: #1e1b4b; }
-.source-card { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-left: 4px solid #818cf8; border-radius: 12px; padding: 14px 16px; margin: 10px 0; }
+.source-card { background: rgba(30, 27, 75, 0.55); backdrop-filter: blur(12px); color: #e2e8f0; border: 1px solid rgba(168, 85, 247, 0.4); border-left: 4px solid #c084fc; border-radius: 12px; padding: 14px 16px; margin: 10px 0; }
 .source-card .meta { font-size: .82rem; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
 .stButton > button { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 999px; padding: .55rem 1.2rem; font-weight: 700; box-shadow: 0 6px 16px rgba(99,102,241,.35); }
 .stButton > button:hover { filter: brightness(1.08); color: white; }
