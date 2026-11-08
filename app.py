@@ -1,13 +1,8 @@
-"""StudyLens - RAG Study Assistant (v5, sidebar layout).
+"""StudyLens - RAG Study Assistant (v6, glassmorphic hero).
 
-Layout (from Sajeeb's diagram):
-  Sidebar (~320px): logo, Document Ingestion, Active Document Stats,
-    Workspace Controls (Download Revision Pack, Clear & Start Fresh),
-    Privacy Shield.
-  Main workspace: top banner (active deck + pages indexed), stats cards,
-    mode buttons [Flashcards | Ask PDF | Summary | Quiz],
-    then the active mode: flashcards with Prev / Flip / Next,
-    chat-style Ask, Summary, or Quiz + Practice.
+v6: animated glassmorphic hero banner (aurora orb, live pulse badge,
+shimmer headline), equal-height feature cards with hover lift.
+Layout: sidebar (~320px) + main workspace, per Sajeeb's diagram.
 Run: streamlit run app.py
 """
 import os
@@ -53,14 +48,77 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
     background: #1e293b; border: 1px solid #334155; border-radius: 12px;
     padding: 12px 14px; font-size: .85rem; color: #cbd5e1; margin-top: 18px;
 }
-/* Banner */
-.banner {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #ec4899 100%);
-    border-radius: 16px; padding: 20px 24px; color: white;
-    box-shadow: 0 10px 28px rgba(99,102,241,.35); margin-bottom: 16px;
+/* ---- Hero: animated glassmorphic banner ---- */
+@keyframes auroraGlow {
+    0% { transform: rotate(0deg) scale(1); opacity: .7; }
+    50% { transform: rotate(180deg) scale(1.25); opacity: 1; }
+    100% { transform: rotate(360deg) scale(1); opacity: .7; }
 }
-.banner .kicker { font-size: .78rem; font-weight: 700; letter-spacing: .1em; opacity: .95; }
-.banner h1 { font-size: 1.5rem; margin: 6px 0 0 0; color: white; }
+@keyframes livePulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, .55); }
+    70% { box-shadow: 0 0 0 9px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes textShimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.banner {
+    position: relative; overflow: hidden;
+    background: rgba(20, 24, 43, 0.75);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 20px; padding: 32px 26px; color: white;
+    box-shadow: 0 12px 35px -10px rgba(139, 92, 246, 0.25);
+    margin-bottom: 16px;
+}
+.banner .aurora-orb {
+    position: absolute; top: -60px; right: -40px; width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(168, 85, 247, .45) 0%, rgba(59, 130, 246, .25) 45%, transparent 70%);
+    filter: blur(30px); animation: auroraGlow 12s ease-in-out infinite; pointer-events: none;
+}
+.banner .hero-content { position: relative; z-index: 1; }
+.banner .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 999px; padding: 6px 14px;
+    font-size: .78rem; font-weight: 700; letter-spacing: .08em; color: #e9d5ff;
+}
+.banner .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #10b981; animation: livePulse 2s infinite;
+}
+.banner h1 {
+    font-size: 29px; font-weight: 800; margin: 14px 0 8px 0; line-height: 1.25;
+    background: linear-gradient(90deg, #ffffff, #ddd6fe, #60a5fa, #a855f7, #ffffff);
+    background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: textShimmer 6s ease-in-out infinite;
+}
+.banner .subtitle { color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0; }
+.banner .kicker { font-size: .78rem; font-weight: 700; letter-spacing: .1em; color: #c4b5fd; }
+/* ---- Feature cards: equal height, hover lift ---- */
+.feature-card {
+    display: flex; flex-direction: column; justify-content: space-between;
+    height: 100%; min-height: 240px;
+    background: #1e293b; color: #f1f5f9; border: 1px solid #334155;
+    border-radius: 16px; padding: 20px 22px; margin: 12px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.feature-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 12px 28px rgba(139, 92, 246, .3);
+}
+.feature-card h3 { margin-top: 0; color: #fff; }
+.feature-card p { color: #e2e8f0; }
+.mini-chip {
+    background: rgba(0, 0, 0, 0.3); border-left: 3px solid #a855f7;
+    border-radius: 0 8px 8px 0; padding: 10px 12px; margin-top: 12px;
+    font-size: .9rem; color: #e2e8f0;
+}
 /* Cards */
 .card { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 16px; padding: 20px 22px; margin: 12px 0; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
 .card h3 { margin-top: 0; color: #fff; }
@@ -179,8 +237,12 @@ with st.sidebar:
 if doc:
     short_name = doc["name"].replace(" (sample)", "").replace(".pdf", "")
     st.markdown(
-        f'<div class="banner"><div class="kicker">✦ RAG GROUNDED • {short_name.upper()} ACTIVE • {len(doc["pages"])} PAGES INDEXED</div>'
-        f'<h1>Active Study Deck &amp; Interactive Knowledge Engine</h1></div>',
+        f'<div class="banner"><div class="aurora-orb"></div><div class="hero-content">'
+        f'<span class="badge"><span class="live-dot"></span>RAG GROUNDED • IN-MEMORY VECTOR SEARCH • FREE</span>'
+        f'<h1>🔍 StudyLens — Active Study Deck &amp; Knowledge Engine</h1>'
+        f'<p class="subtitle">{short_name} is active — {len(doc["pages"])} pages indexed. Ask, summarise, quiz yourself; every answer comes from your document, with the source shown.</p>'
+        f'<div class="kicker" style="margin-top:10px">✦ {short_name.upper()} ACTIVE • {len(doc["pages"])} PAGES INDEXED</div>'
+        f'</div></div>',
         unsafe_allow_html=True,
     )
     c1, c2, c3 = st.columns(3)
@@ -306,18 +368,21 @@ if doc:
 else:
     # Landing page (no document yet)
     st.markdown(
-        '<div class="banner"><div class="kicker">✦ RAG • GROUNDED IN YOUR PDF • FREE</div>'
-        '<h1>🔍 StudyLens — Active Study Deck &amp; Interactive Knowledge Engine</h1></div>',
+        '<div class="banner"><div class="aurora-orb"></div><div class="hero-content">'
+        '<span class="badge"><span class="live-dot"></span>RAG GROUNDED • IN-MEMORY VECTOR SEARCH • FREE</span>'
+        '<h1>🔍 StudyLens — Active Study Deck &amp; Knowledge Engine</h1>'
+        '<p class="subtitle">Upload your notes. Ask, summarise, quiz yourself — every answer comes from your document, with the source shown. No API key needed, free to use.</p>'
+        '</div></div>',
         unsafe_allow_html=True,
     )
     st.markdown("### ✨ What you can do with StudyLens")
     lc1, lc2, lc3 = st.columns(3)
     with lc1:
-        st.markdown('<div class="card"><h3>💬 Ask from your PDF</h3><p>Ask in plain English, get an answer from your notes — with the page shown.</p><p><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="feature-card"><div><h3>💬 Ask from your PDF</h3><p>Ask in plain English, get an answer from your notes — with the page shown.</p></div><div class="mini-chip"><b>Q:</b> What is cyclomatic complexity?<br><b>A:</b> A measure of how complex a program\'s control flow is… <i>(Page 6)</i></div></div>', unsafe_allow_html=True)
     with lc2:
-        st.markdown('<div class="card"><h3>📝 Summarise in seconds</h3><p>Turn a whole chapter into a short summary and key points for revision.</p><p><b>Summary:</b> A structural model shows the static structure of a system…</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="feature-card"><div><h3>📝 Summarise in seconds</h3><p>Turn a whole chapter into a short summary and key points for revision.</p></div><div class="mini-chip"><b>Summary:</b> A structural model shows the static structure of a system…</div></div>', unsafe_allow_html=True)
     with lc3:
-        st.markdown('<div class="card"><h3>✅ Quiz yourself</h3><p>MCQs, practice questions and flashcards — all made from your PDF.</p><p><b>Q:</b> What is a structural model?</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="feature-card"><div><h3>✅ Quiz yourself</h3><p>MCQs, practice questions and flashcards — all made from your PDF.</p></div><div class="mini-chip"><b>Q:</b> What is a structural model?<br><b>A.</b> … <b>B.</b> … <b>C.</b> …</div></div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="card"><h3>👋 How it works</h3>'
         '<p><b>1.</b> Upload a PDF in the sidebar, or load the sample &nbsp;→&nbsp; <b>2.</b> Ask a question, get a summary, or take a quiz &nbsp;→&nbsp; <b>3.</b> Every answer shows its source page.</p>'
