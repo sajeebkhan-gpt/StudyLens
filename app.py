@@ -1,4 +1,4 @@
-"""StudyLens - RAG Study Assistant (v6, glassmorphic hero).
+"""StudyLens - RAG Study Assistant (v6.1, glassmorphic hero).
 
 v6: animated glassmorphic hero banner (aurora orb, live pulse badge,
 shimmer headline), equal-height feature cards with hover lift.
@@ -98,7 +98,12 @@ section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] li { color
 }
 .banner .subtitle { color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0; }
 .banner .kicker { font-size: .78rem; font-weight: 700; letter-spacing: .1em; color: #c4b5fd; }
-/* ---- Feature cards: equal height, hover lift ---- */
+/* ---- Feature cards: equal height, hover lift ----
+   Streamlit columns do not stretch by default, so height:100% on the
+   card alone is not enough — the column wrappers must stretch too. */
+div[data-testid="stHorizontalBlock"] { align-items: stretch !important; }
+div[data-testid="stColumn"] > div:first-child { height: 100%; }
+div[data-testid="stColumn"] > div:first-child > div[data-testid="stVerticalBlock"] { height: 100%; }
 .feature-card {
     display: flex; flex-direction: column; justify-content: space-between;
     height: 100%; min-height: 240px;
